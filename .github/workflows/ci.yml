@@ -1,0 +1,49 @@
+# Имя пайплайна, которое будет отображаться на GitHub
+name: Python CI Pipeline
+
+# События, которые активируют пайплайн
+on:
+  push:
+    branches: [ "main", "master" ]  # Запуск при пуше в main/master
+  pull_request:
+    branches: [ "main", "master" ]  # Запуск при создании/обновлении PR
+
+# Описание задач 
+jobs:
+  test:
+    # Операционная система виртуальной машины на GitHub
+    runs-on: ubuntu-latest
+
+    steps:
+      # Скачивание кода репозитория на виртуальную машину
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Установка Python нужной версии
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      # Кэширование зависимостей 
+      - name: Cache pip packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      # Установка зависимостей из requirements.txt
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      # Запуск тестов с проверкой покрытия кода
+      # --cov=src - проверяем покрытие папки src
+      # --cov-fail-under=80 - пайплайн упадёт, если покрытие < 80%
+      # --cov-report=term-missing - вывод в консоль с указанием непокрытых строк
+      - name: Run tests with coverage
+        run: |
+          pytest --cov=src --cov-fail-under=80 --cov-report=term-missing
